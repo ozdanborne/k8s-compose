@@ -1,0 +1,36 @@
+version: '3'
+services:
+  etcd:
+    image: quay.io/coreos/etcd
+    ports:
+      - 2379:2379
+    environment:
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379,http://localhost:2379
+
+  apiserver:
+    image: gcr.io/google_containers/hyperkube-amd64:v1.7.5
+    depends_on: 
+      - etcd
+    ports:
+      - 8080:8080
+    command:
+      - "/hyperkube"
+      - "apiserver"
+      - "--service-cluster-ip-range=10.101.0.0/16"
+      - "--authorization-mode=AlwaysAllow"
+      - "--insecure-port=8080"
+      - "--insecure-bind-address=0.0.0.0"
+      - "--etcd-servers=http://etcd:2379"
+  policycontroller:
+    image: calico/kube-policy-controller
+    depends_on: 
+      - etcd
+      - apiserver
+    environment:
+      - ETCD_ENDPOINTS=http://etcd:2379
+      - ENABLED_CONTROLLERS=endpoint,profile,policy
+      - LOG_LEVEL=debug
+      - KUBECONFIG=/kubeconfig
+    volumes:
+      - ./kubeconfig:/kubeconfig

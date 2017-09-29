@@ -22,6 +22,28 @@ services:
       - "--insecure-port=8080"
       - "--insecure-bind-address=0.0.0.0"
       - "--etcd-servers=http://etcd:2379"
+  scheduler:
+    image: gcr.io/google_containers/hyperkube-amd64:v1.7.5
+    depends_on:
+      - apiserver
+    command:
+      - "/hyperkube"
+      - "scheduler"
+      - "--master=http://apiserver:8080"
+  kubelet:
+    image: gcr.io/google_containers/hyperkube-amd64:v1.7.5
+    depends_on:
+      - apiserver
+    volumes:
+    #  - /var/lib/docker/:/var/lib/docker:rw
+      - /var/run/docker.sock:/var/run/docker.sock
+    command:
+      - "/hyperkube"
+      - "kubelet"
+      - "--api-servers=apiserver:8080"
+    pid: host
+    privileged: true
+
   policycontroller:
     image: calico/kube-policy-controller
     depends_on: 
